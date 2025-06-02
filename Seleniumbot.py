@@ -84,7 +84,7 @@ def aguardar_e_clicar_no_icone(timeout=60):
 # Loop principal
 while True:
     pausado.wait()  # Espera estar no estado 'retomado'
-    print(f"\n[LOOP] Iniciando novo ciclo...")
+    print(f"\n Iniciando novo ciclo...")
 
     if not aguardar_e_clicar_no_icone():
         break
