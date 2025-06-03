@@ -10,8 +10,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 
 # CONFIGURAÇÕES
-USUARIO = "Hibrael.xavier"
-SENHA = "Kcas500@"
+USUARIO = "usuario"
+SENHA = "senha"
 
 # Navegador
 options = webdriver.ChromeOptions()
