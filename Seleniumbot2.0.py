@@ -1,5 +1,7 @@
 import threading
 import keyboard
+import pandas as pd
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -7,11 +9,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-import time
+
 
 # CONFIGURAÇÕES
-USUARIO = "Hibrael.xavier"
-SENHA = "Kcas500@"
+USUARIO = "usuario"
+SENHA = "senha"
 
 # Navegador
 options = webdriver.ChromeOptions()
@@ -79,52 +81,90 @@ def aguardar_e_clicar_no_icone(timeout=60):
         print("[ERRO] Botão com ícone não encontrado após aguardar:", e)
         driver.save_screenshot("erro_varinha.png")
         return False
-licitacao_ids = []
-# Loop principal
-while True:
-    pausado.wait()  # Espera estar no estado 'retomado'
-    print(f"\n Iniciando novo ciclo...")
-
-    if not aguardar_e_clicar_no_icone():
-        break
-    time.sleep(2.5)
-
-    if not clicar_por_ng_click("vm.visualizarItensPortal()"):
-        break
-    time.sleep(1.5)
-
-    if not clicar_por_ng_click("dialog.hide()"):  # USAR COMO ESPELHO
-        break
-    time.sleep(1.5)
     
-     # <--Coleta ID da licitação -->
-    try:
-        span_id = wait.until(EC.visibility_of_element_located(
-            (By.XPATH, "//span[@ng-if=\"!vm.dados.id_categoria\"]")
-        ))
-        texto = span_id.text  # ex: "1340452 - Ajuste de itens da licitação"
-        id_num = texto.split(" - ")[0].strip()
-        licitacao_ids.append(id_num)
-        print(f"[OK] Coletado ID da licitação: {id_num}")
-    except Exception as e:
-        print("[ERRO] Não consegui extrair o ID da licitação:", e)
-        driver.save_screenshot("erro_extrair_id.png")
-        # caso queira interromper aqui, pode descomentar a próxima linha:
-        # break
 
-    if not clicar_por_ng_click("vm.salvar()"):
-        break
-    time.sleep(1.5)
+# Antes do loop:
+licitacao_info = []  # lista para armazenar {'id': ..., 'objeto': ...}
 
-    if not clicar_por_ng_click("dialog.hide()"):  # TENHO CERTEZA
-        break
-    time.sleep(2)
+try:
+    # Loop principal
+    while True:
+        pausado.wait()
+        print(f"\n Iniciando novo ciclo...")
 
-    contador += 1
-    print(f"[✓] Licitações ajustadas: {contador}")
-    print("[AGUARDANDO] Próximo ciclo em 3 segundos...\n")
-    time.sleep(2)
+        if not aguardar_e_clicar_no_icone():
+            print("[INFO] Ícone da varinha não encontrado. Provavelmente sem mais licitações.")
+            break
+        time.sleep(2.5)
 
-print("\nLista de IDs das licitações ajustadas:")
-for lid in licitacao_ids:
-    print(f" - {lid}")
+        if not clicar_por_ng_click("vm.visualizarItensPortal()"):
+            break
+        time.sleep(1.5)
+
+        if not clicar_por_ng_click("dialog.hide()"):
+            break
+        time.sleep(1.5)
+
+        if not clicar_por_ng_click("vm.salvar()"):
+            break
+        time.sleep(1.5)
+
+        # ─── Extrair ID e Objeto ───
+        try:
+            span_id = wait.until(EC.visibility_of_element_located(
+                (By.XPATH, "//span[@ng-if=\"!vm.dados.id_categoria\"]")
+            ))
+            texto_id = span_id.text
+            id_num = texto_id.split(" - ")[0].strip()
+
+            div_objeto = wait.until(EC.visibility_of_element_located(
+                (By.XPATH, "//div[@ng-if=\"vm.licitacao.objeto\"]")
+            ))
+            texto_objeto = div_objeto.text
+            objeto_desc = texto_objeto.replace("Objeto: ", "").strip()
+
+            licitacao_info.append({"id": id_num, "objeto": objeto_desc})
+            print(f"[OK] Coletado ID={id_num} com Objeto=\"{objeto_desc}\"")
+        except Exception as e:
+            print("[ERRO] Não consegui extrair ID e/ou Objeto:", e)
+            driver.save_screenshot("erro_extrair_info.png")
+            pausado.clear()
+            print("\n⏸️ PAUSADO. Pressione 'r' para RETOMAR...\n")
+            keyboard.wait('r')
+            pausado.set()
+
+        # 5) TENHO CERTEZA (último clique)
+        if not clicar_por_ng_click("dialog.hide()"):
+            break
+        time.sleep(2)
+
+        contador += 1
+        print(f"[✓] Licitações ajustadas: {contador}")
+        print("[AGUARDANDO] Próximo ciclo em 3 segundos...\n")
+        time.sleep(2)
+
+except KeyboardInterrupt:
+    print("\n[INFO] Execução interrompida pelo usuário (Ctrl+C).")
+
+finally:
+    # 1) Monta um DataFrame a partir de licitacao_info
+    df = pd.DataFrame(licitacao_info)
+
+    # 2) Salva em arquivo Excel
+    caminho_excel = "licitacoes_ajustadas.xlsx"
+    df.to_excel(caminho_excel, index=False, header=["ID", "Objeto"])
+    print(f"\n[OK] Arquivo Excel gerado em: {caminho_excel}")
+
+    # 3) Opcional: também exibe no terminal
+    print("\nLista de licitações ajustadas:")
+    print(f"\n Quantidade de licitações ajustadas: {contador}\n")
+    for info in licitacao_info:
+        print(f" - ID: {info['id']}  |  Objeto: {info['objeto']}\n")
+
+    driver.quit()
+    exit()
+
+
+
+
+
