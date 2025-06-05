@@ -12,8 +12,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 # CONFIGURAÇÕES
-USUARIO = "usuario"
-SENHA = "senha"
+USUARIO = "Hibrael.xavier"
+SENHA = "Kcas500@"
 
 # Navegador
 options = webdriver.ChromeOptions()
@@ -157,9 +157,9 @@ finally:
 
     # 3) Opcional: também exibe no terminal
     print("\nLista de licitações ajustadas:")
-    print(f"\n Quantidade de licitações ajustadas: {contador}\n")
     for info in licitacao_info:
         print(f" - ID: {info['id']}  |  Objeto: {info['objeto']}\n")
+    print(f"\n Quantidade de licitações ajustadas: {contador}\n")
 
     driver.quit()
     exit()
